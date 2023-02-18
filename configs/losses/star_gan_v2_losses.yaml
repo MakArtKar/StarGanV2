@@ -1,0 +1,14 @@
+AdversarialLoss:
+  _target_: src.losses.AdversarialLoss
+
+
+StyleReconstructionLoss:
+  _target_: src.losses.StyleReconstructionLoss
+
+
+StyleDiversificationLoss:
+  _target_: src.losses.StyleDiversificationLoss
+
+
+CycleLoss:
+  _target_: src.losses.CycleLoss
