@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class DummyDiscriminator(nn.Module):
-    def __init__(self, num_domains=2):
+    def __init__(self):
         super().__init__()
         self.model = nn.Sequential(
             nn.Conv2d(3, 1, 1),

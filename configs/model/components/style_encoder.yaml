@@ -1,0 +1,2 @@
+_target_: src.models.DummyStyleEncoder
+style_dim: ${....style_dim}

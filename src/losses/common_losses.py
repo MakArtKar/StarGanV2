@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import List, Tuple
 
 import torch.nn as nn
 
@@ -13,7 +14,7 @@ class BaseLoss(nn.Module):
 
 
 class ConcatLoss(BaseLoss):
-    def __init__(self, losses: list[tuple[BaseLoss, float]]):
+    def __init__(self, losses: List[Tuple[BaseLoss, float]]):
         super().__init__()
         self.losses = losses
 

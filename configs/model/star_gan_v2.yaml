@@ -1,0 +1,43 @@
+defaults:
+  - components@models.generator: generator
+  - components@models.discriminator: discriminator
+  - components@models.mapping_network: mapping_network
+  - components@models.style_encoder: style_encoder
+
+_target_: src.models.star_gan_v2_module.StarGanV2LitModule
+
+latent_dim: ${..latent_dim}
+n_domains: ${..n_domains}
+models:
+  _target_: munch.Munch
+
+optimizers:
+  _target_: munch.Munch
+  generator:
+    _target_: torch.optim.Adam
+    _partial_: True
+    betas: [0, 0.99]
+    lr: 1e-4
+  discriminator:
+    _target_: torch.optim.Adam
+    _partial_: True
+    betas: [ 0, 0.99 ]
+    lr: 1e-4
+  mapping_network:
+    _target_: torch.optim.Adam
+    _partial_: True
+    betas: [ 0, 0.99 ]
+    lr: 1e-6
+  style_encoder:
+    _target_: torch.optim.Adam
+    _partial_: True
+    betas: [ 0, 0.99 ]
+    lr: 1e-4
+
+criterion:
+  _target_: src.losses.common_losses.ConcatLoss
+  losses:
+    - [${.....losses.AdversarialLoss}, 1.]
+    - [${.....losses.StyleReconstructionLoss}, 1.]
+    - [${.....losses.StyleDiversificationLoss}, 1.]
+    - [${.....losses.CycleLoss, 1.}]
