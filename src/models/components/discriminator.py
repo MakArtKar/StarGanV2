@@ -33,18 +33,3 @@ class Discriminator(nn.Module):
         result = result.view(result.size(0), -1)
         ids = torch.arange(y.size(0)).to(y)
         return result[ids, y]
-
-
-def test():
-    batch_size, image_size, n_domains = 8, 64, 2
-    discriminator = Discriminator(n_domains, image_size=image_size)
-    image = torch.randn(batch_size, 3, image_size, image_size)
-    y = torch.randint(low=0, high=n_domains, size=(batch_size,))
-    out = discriminator(image, y)
-    assert out.shape == (batch_size,), out.shape
-
-    print('OK discriminator')
-
-
-if __name__ == '__main__':
-    test()

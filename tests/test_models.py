@@ -1,7 +1,11 @@
 import torch
 from omegaconf import DictConfig
 
+from src.models.components.discriminator import Discriminator
+from src.models.components.generator import Generator
+from src.models.components.mapping_network import MappingNetwork
 from src.models.components.res_blocks import AdaIN, DownsampleResNetBlock, UpsampleResNetBlock
+from src.models.components.style_encoder import StyleEncoder
 
 
 def test_adain(cfg_train: DictConfig):
@@ -43,3 +47,38 @@ def test_upsample_resnet_block(cfg_train: DictConfig):
     out = block(x, style)
     out_size = (cfg_train.data.batch_size, out_channels, cfg_train.image_size, cfg_train.image_size)
     assert out.shape == out_size, out.shape
+
+
+def test_discriminator(cfg_train: DictConfig):
+    discriminator = Discriminator(cfg_train.n_domains, image_size=cfg_train.image_size)
+    image = torch.randn(cfg_train.data.batch_size, 3, cfg_train.image_size, cfg_train.image_size)
+    y = torch.randint(low=0, high=cfg_train.n_domains, size=(cfg_train.data.batch_size,))
+    out = discriminator(image, y)
+    assert out.shape == (cfg_train.data.batch_size,), out.shape
+
+
+def test_generator(cfg_train: DictConfig):
+    image = torch.rand(cfg_train.data.batch_size, 3, cfg_train.image_size, cfg_train.image_size)
+    style = torch.randn(cfg_train.data.batch_size, cfg_train.style_dim)
+
+    generator = Generator(cfg_train.style_dim)
+    out = generator(image, style)
+    assert out.shape == (cfg_train.data.batch_size, 3, cfg_train.image_size, cfg_train.image_size), out.shape
+
+
+def test_mapping_network(cfg_train: DictConfig):
+    net = MappingNetwork(cfg_train.latent_dim, cfg_train.style_dim, cfg_train.n_domains)
+    z = torch.randn(cfg_train.data.batch_size, cfg_train.latent_dim)
+    y = torch.randint(low=0, high=cfg_train.n_domains, size=(cfg_train.data.batch_size,))
+
+    out = net(z, y)
+    assert out.shape == (cfg_train.data.batch_size, cfg_train.style_dim), out.shape
+
+
+def test_style_encoder(cfg_train: DictConfig):
+    enc = StyleEncoder(cfg_train.style_dim, cfg_train.n_domains, image_size=cfg_train.image_size)
+    x = torch.randn(cfg_train.data.batch_size, 3, cfg_train.image_size, cfg_train.image_size)
+    y = torch.randint(low=0, high=cfg_train.n_domains, size=(cfg_train.data.batch_size,))
+
+    out = enc(x, y)
+    assert out.shape == (cfg_train.data.batch_size, cfg_train.style_dim), out.shape

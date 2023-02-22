@@ -34,19 +34,3 @@ class StyleEncoder(nn.Module):
         result = torch.stack([m(x) for m in self.unshared], dim=1)
         ids = torch.arange(y.size(0)).to(y)
         return result[ids, y]
-
-
-def test():
-    batch_size, style_dim, n_domains, image_size = 8, 64, 2, 32
-    enc = StyleEncoder(style_dim, n_domains, image_size=image_size)
-    x = torch.randn(batch_size, 3, image_size, image_size)
-    y = torch.randint(low=0, high=n_domains, size=(batch_size,))
-
-    out = enc(x, y)
-    assert out.shape == (batch_size, style_dim), out.shape
-
-    print('OK style encoder')
-
-
-if __name__ == '__main__':
-    test()

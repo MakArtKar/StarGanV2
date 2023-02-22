@@ -59,25 +59,3 @@ class Generator(nn.Module):
             x = decoder_block(x, style)
         x = self.conv2(x)
         return x
-
-
-def test_generator(batch_size, in_channels, out_channels, img_size, style_dim, x, style):
-    img_size = 256
-    image = torch.rand(batch_size, 3, img_size, img_size)
-    generator = Generator(style_dim)
-    out = generator(image, style)
-    assert out.shape == (batch_size, 3, img_size, img_size), out.shape
-
-    print('OK generator')
-
-
-def test():
-    batch_size, in_channels, out_channels, img_size, style_dim = 8, 128, 64, 4, 32
-    x = torch.randn(batch_size, in_channels, img_size, img_size)
-    style = torch.randn(batch_size, style_dim)
-
-    test_generator(batch_size, in_channels, out_channels, img_size, style_dim, x, style)
-
-
-if __name__ == '__main__':
-    test()
