@@ -1,8 +1,7 @@
-import numpy as np
 import torch
 import torch.nn as nn
 
-from src.models.components.res_blocks import DownsampleResNetBlock
+from src.models.components.decoder import Decoder
 
 
 class DummyDiscriminator(nn.Module):
@@ -18,17 +17,10 @@ class DummyDiscriminator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, num_domains: int, image_size: int = 256, hid_channels: int = 64, max_channels_scale=8):
+    def __init__(self, num_domains: int, image_size: int = 256, hid_channels: int = 64, max_channels_scale: int = 8):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, hid_channels, 1)
-        channels = hid_channels
-        decoder = []
-        depth = int(np.log2(image_size)) - 2
-        for _ in range(depth):
-            new_channels = min(max_channels_scale * hid_channels, channels * 2)
-            decoder.append(DownsampleResNetBlock(channels, new_channels))
-            channels = new_channels
-        self.decoder = nn.Sequential(*decoder)
+        self.decoder = Decoder(image_size, hid_channels, max_channels_scale)
+        channels = self.decoder.out_channels
         self.tail = nn.Sequential(
             nn.LeakyReLU(0.2),
             nn.Conv2d(channels, channels, 4),
@@ -37,7 +29,6 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, x, y):
-        x = self.conv1(x)
         result = self.decoder(x)
         result = result.view(result.size(0), -1)
         ids = torch.arange(y.size(0)).to(y)

@@ -37,13 +37,13 @@ class ResNetBlock(nn.Module):
 
 
 class DownsampleResNetBlock(ResNetBlock):
-    def __init__(self, in_channels, out_channels, downsample=True):
+    def __init__(self, in_channels, out_channels, norm=True, downsample=True):
         super().__init__(in_channels, out_channels)
         self.conv1 = nn.Conv2d(in_channels, in_channels, 3, padding=1)
-        self.norm1 = nn.InstanceNorm2d(in_channels, affine=True)
+        self.norm1 = nn.InstanceNorm2d(in_channels, affine=True) if norm else nn.Identity()
 
         self.conv2 = nn.Conv2d(in_channels, out_channels, 3, padding=1)
-        self.norm2 = nn.InstanceNorm2d(in_channels, affine=True)
+        self.norm2 = nn.InstanceNorm2d(in_channels, affine=True) if norm else nn.Identity()
 
         self.activ = nn.LeakyReLU(0.2)
 
