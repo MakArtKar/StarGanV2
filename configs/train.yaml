@@ -54,3 +54,4 @@ seed: null
 latent_dim: 64
 n_domains: 2
 style_dim: 16
+image_size: 32

@@ -37,7 +37,12 @@ optimizers:
 criterion:
   _target_: src.losses.common_losses.ConcatLoss
   losses:
-    - [${.....losses.AdversarialLoss}, 1.]
-    - [${.....losses.StyleReconstructionLoss}, 1.]
-    - [${.....losses.StyleDiversificationLoss}, 1.]
-    - [${.....losses.CycleLoss, 1.}]
+    - ${.....losses.AdversarialLoss}
+    - ${.....losses.StyleReconstructionLoss}
+    - ${.....losses.StyleDiversificationLoss}
+    - ${.....losses.CycleLoss}
+  weights:
+    - 1
+    - 1
+    - 1
+    - 1

@@ -14,12 +14,13 @@ class BaseLoss(nn.Module):
 
 
 class ConcatLoss(BaseLoss):
-    def __init__(self, losses: List[Tuple[BaseLoss, float]]):
+    def __init__(self, losses: List[BaseLoss], weights: List[float]):
         super().__init__()
         self.losses = losses
+        self.weights = weights
 
     def forward(self, **kwargs):
         result = 0.
-        for loss, scalar in self.losses:
-            result += scalar * loss(**kwargs)
+        for loss, weight in zip(self.losses, self.weights):
+            result += weight * loss(**kwargs)
         return result
