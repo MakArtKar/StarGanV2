@@ -62,7 +62,7 @@ class StarGanV2LitModule(LightningModule):
     def init_step(self, batch):
         x, y = batch
         z = self.sample_z(x.size(0))
-        y_ref = torch.randint(low=0, high=self.hparams.n_domains, size=(x.size(0),))
+        y_ref = 1 - y
         s_ref = self.models.mapping_network(z, y_ref)
         result = {'x': x, 'y': y, 'z': z, 'y_ref': y_ref, 's_ref': s_ref}
         return result

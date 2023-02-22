@@ -1,8 +1,10 @@
 import os
 import zipfile 
 import gdown
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from torchvision import transforms
 import re
 import numpy as np
 import torch
@@ -20,7 +22,7 @@ class CelebADataset(Dataset):
         """
         Args:
           root_dir (string): Directory with all the images
-          transform (albumentations.ImageOnlyTransform): transform to be applied to each image sample
+          transform (callable, optional): transform to be applied to each image sample
         """
         self.crop = crop
         # Read names of images in the root directory
@@ -76,6 +78,6 @@ class CelebADataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         # Apply transformations to the image
         if self.transform:
-            img = self.transform(image=img)['image']
+            img = self.transform(img)
         return img, {'filename': img_name, 'idx': idx, 'attributes': torch.tensor(img_attributes).long()}
     
