@@ -1,2 +1,6 @@
-_target_: src.models.DummyStyleEncoder
-style_dim: ${....style_dim}
+_target_: src.models.StyleEncoder
+style_dim: ${.....style_dim}
+n_domains: ${.....n_domains}
+image_size: ${.....image_size}
+hid_channels: 64
+max_channels_scale: 8

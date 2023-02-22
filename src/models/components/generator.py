@@ -4,12 +4,8 @@ import torch.nn as nn
 from src.models.components.res_blocks import DownsampleResNetBlock, UpsampleResNetBlock
 
 
-class DummyGenerator(nn.Identity):
-    ...
-
-
 class Generator(nn.Module):
-    def __init__(self, style_dim, hid_channels=64, depth=4, bottleneck_num: int = 4):
+    def __init__(self, style_dim: int, hid_channels: int = 64, depth: int = 4, bottleneck_num: int = 4):
         super().__init__()
         self.channels = hid_channels
         self.bottleneck_num = bottleneck_num

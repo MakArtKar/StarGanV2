@@ -9,7 +9,7 @@ class AdversarialLoss(BaseLoss):
         super().__init__()
 
     def forward(self, real_disc_output: torch.Tensor, fake_disc_output: torch.Tensor, **kwargs):
-        return self.coef * (torch.log(real_disc_output).mean() + torch.log(1 - fake_disc_output).mean())
+        return torch.log(real_disc_output).mean() + torch.log(1 - fake_disc_output).mean()
 
 
 class StyleReconstructionLoss(BaseLoss):

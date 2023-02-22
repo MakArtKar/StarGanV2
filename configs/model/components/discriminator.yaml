@@ -1,1 +1,5 @@
-_target_: src.models.DummyDiscriminator
+_target_: src.models.Discriminator
+n_domains: ${.....n_domains}
+image_size: ${.....image_size}
+hid_channels: 64
+max_channels_scale: 8

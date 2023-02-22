@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 from PIL import Image
 
 from src.data.components.celeba import CelebADataset
@@ -12,6 +13,7 @@ class WrappedCelebADataset(CelebADataset):
         img_attributes = self.annotations[idx] # convert all attributes to zeros and ones
         # Load image and convert it to RGB
         img = Image.open(img_path).convert('RGB')
+        img = np.array(img)
         # Apply transformations to the image
         if self.transform:
             img = self.transform(image=img)['image']

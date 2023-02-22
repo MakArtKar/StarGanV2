@@ -1,3 +1,4 @@
-_target_: src.models.DummyMappingNetwork
-latent_dim: ${....latent_dim}
-style_dim: ${....style_dim}
+_target_: src.models.MappingNetwork
+latent_dim: ${.....latent_dim}
+style_dim: ${.....style_dim}
+n_domains: ${.....n_domains}

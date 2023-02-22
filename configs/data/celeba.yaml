@@ -2,3 +2,17 @@ _target_: src.data.celeb_a_datamodule.CelebADataModule
 batch_size: 8
 num_workers: 8
 pin_memory: True
+
+train_transform:
+  _target_: albumentations.Compose
+  transforms:
+    - ${....transforms.Resize}
+    - ${....transforms.Normalize}
+    - ${....transforms.ToTensorV2}
+
+val_transform:
+  _target_: albumentations.Compose
+  transforms:
+    - ${....transforms.Resize}
+    - ${....transforms.Normalize}
+    - ${....transforms.ToTensorV2}

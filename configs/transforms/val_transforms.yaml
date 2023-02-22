@@ -1,0 +1,10 @@
+Resize:
+  _target_: albumentations.Resize
+  height: ${...image_size}
+  width: ${...image_size}
+
+Normalize:
+  _target_: albumentations.Normalize
+
+ToTensorV2:
+  _target_: albumentations.pytorch.ToTensorV2

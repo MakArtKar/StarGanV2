@@ -4,20 +4,8 @@ import torch.nn as nn
 from src.models.components.decoder import Decoder
 
 
-class DummyDiscriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Conv2d(3, 1, 1),
-            nn.AdaptiveAvgPool2d(1)
-        )
-
-    def forward(self, x, y):
-        return self.model(x)
-
-
 class Discriminator(nn.Module):
-    def __init__(self, num_domains: int, image_size: int = 256, hid_channels: int = 64, max_channels_scale: int = 8):
+    def __init__(self, n_domains: int, image_size: int = 256, hid_channels: int = 64, max_channels_scale: int = 8):
         super().__init__()
         self.decoder = Decoder(image_size, hid_channels, max_channels_scale)
         channels = self.decoder.out_channels
@@ -25,7 +13,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Conv2d(channels, channels, 4),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(channels, num_domains, 1)
+            nn.Conv2d(channels, n_domains, 1)
         )
 
     def forward(self, x, y):

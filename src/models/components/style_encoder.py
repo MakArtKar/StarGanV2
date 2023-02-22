@@ -4,18 +4,6 @@ import torch.nn as nn
 from src.models.components.decoder import Decoder
 
 
-class DummyStyleEncoder(nn.Module):
-    def __init__(self, style_dim=64):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Conv2d(3, style_dim, 1),
-            nn.AdaptiveAvgPool2d(1)
-        )
-
-    def forward(self, x, y):
-        return self.model(x)
-
-
 class StyleEncoder(nn.Module):
     def __init__(self, style_dim: int, n_domains: int,
                  image_size: int = 256, hid_channels: int = 64, max_channels_scale: int = 8):

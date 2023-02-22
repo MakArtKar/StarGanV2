@@ -1,15 +1,16 @@
 defaults:
-  - components@models.generator: generator
-  - components@models.discriminator: discriminator
-  - components@models.mapping_network: mapping_network
-  - components@models.style_encoder: style_encoder
+  - _self_
+  - components@models.modules.generator: generator
+  - components@models.modules.discriminator: discriminator
+  - components@models.modules.mapping_network: mapping_network
+  - components@models.modules.style_encoder: style_encoder
 
 _target_: src.models.star_gan_v2_module.StarGanV2LitModule
 
 latent_dim: ${..latent_dim}
 n_domains: ${..n_domains}
 models:
-  _target_: munch.Munch
+  _target_: torch.nn.ModuleDict
 
 optimizers:
   _target_: munch.Munch
@@ -37,10 +38,10 @@ optimizers:
 criterion:
   _target_: src.losses.common_losses.ConcatLoss
   losses:
-    - ${.....losses.AdversarialLoss}
-    - ${.....losses.StyleReconstructionLoss}
-    - ${.....losses.StyleDiversificationLoss}
-    - ${.....losses.CycleLoss}
+    - ${....losses.AdversarialLoss}
+    - ${....losses.StyleReconstructionLoss}
+    - ${....losses.StyleDiversificationLoss}
+    - ${....losses.CycleLoss}
   weights:
     - 1
     - 1

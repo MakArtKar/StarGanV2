@@ -2,15 +2,6 @@ import torch
 import torch.nn as nn
 
 
-class DummyMappingNetwork(nn.Module):
-    def __init__(self, latent_dim=16, style_dim=64):
-        super().__init__()
-        self.linear = nn.Linear(latent_dim, style_dim)
-
-    def forward(self, z, y):
-        return self.linear(z)
-
-
 class MappingNetwork(nn.Module):
     def __init__(self, latent_dim: int, style_dim: int, n_domains: int):
         super().__init__()
