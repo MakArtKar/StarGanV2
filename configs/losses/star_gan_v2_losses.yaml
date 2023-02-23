@@ -12,3 +12,7 @@ StyleDiversificationLoss:
 
 CycleLoss:
   _target_: src.losses.CycleLoss
+
+
+R1RegularizationLoss:
+  _target_: src.losses.R1RegularizationLoss

@@ -6,7 +6,7 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 
 ## Implementation ideas
 
-* r1 regularization
+* ~~r1 regularization~~
 * Add x_refs with z-s
 * `loss_ds` weight linear decay
 * He initialization

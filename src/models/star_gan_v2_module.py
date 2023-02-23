@@ -67,6 +67,7 @@ class StarGanV2LitModule(LightningModule):
 
     def init_step(self, batch):
         image, y = batch
+        image.requires_grad_()
         z = self.sample_z(image.size(0))
         y_ref = self.sample_y(image.size(0))
         style_code = self.models.mapping_network(z, y_ref)
@@ -94,9 +95,10 @@ class StarGanV2LitModule(LightningModule):
                 self.log(f'generator_train/{name}', value, prog_bar=True)
             return losses
         elif optimizer_idx == 1:
-            loss = self.discriminator_loss(batch)
-            self.log('discriminator_train/loss', loss, prog_bar=True)
-            return loss
+            losses = self.discriminator_loss(batch)
+            for name, value in losses.items():
+                self.log(f'discriminator_train/{name}', value, prog_bar=True)
+            return losses
         elif optimizer_idx == 2:
             losses = self.generator_loss(batch)
             return losses
