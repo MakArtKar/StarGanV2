@@ -1,3 +1,24 @@
+# StarGanV2 Implementation
+
+## About
+
+Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-Template (original readme below).
+
+## Implementation ideas
+
+* r1 regularization
+* Add x_refs with z-s
+* `loss_ds` weight linear decay
+* He initialization
+* Exponential moving averages
+* Union `mapping_network` and `style_encoder` optimization steps
+* Latent code injection
+* Replace (D) with style code
+* Diversity regularization
+* Add augmentations
+
+---
+
 <div align="center">
 
 # Lightning-Hydra-Template
