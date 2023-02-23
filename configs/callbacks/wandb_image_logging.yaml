@@ -1,0 +1,2 @@
+wandb_image_logging:
+  _target_: src.callbacks.wandb_image_logging.WandbImageLogging

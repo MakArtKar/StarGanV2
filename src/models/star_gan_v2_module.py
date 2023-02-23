@@ -2,7 +2,6 @@ import torch
 from pytorch_lightning import LightningModule
 from munch import Munch
 from lpips_pytorch import lpips
-from torchvision.utils import make_grid
 
 from src.losses import BaseLoss
 
@@ -92,13 +91,11 @@ class StarGanV2LitModule(LightningModule):
         if optimizer_idx == 0:
             losses = self.generator_loss(batch)
             for name, value in losses.items():
-                self.log(f'generator_train/{name}', value, on_step=True, on_epoch=True, prog_bar=True)
-            if batch_idx == 0:
-                self.log_images(batch)
+                self.log(f'generator_train/{name}', value, prog_bar=True)
             return losses
         elif optimizer_idx == 1:
             loss = self.discriminator_loss(batch)
-            self.log('discriminator_train/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log('discriminator_train/loss', loss, prog_bar=True)
             return loss
         elif optimizer_idx == 2:
             losses = self.generator_loss(batch)
@@ -114,7 +111,11 @@ class StarGanV2LitModule(LightningModule):
             'lpips': lpips(fake_images.detach().cpu(), batch['image'].cpu()).squeeze().item()
         }
         self.log(f'{mode}/lpips', metrics['lpips'], on_step=True, on_epoch=True, prog_bar=True)
-        return metrics
+        return {
+            'metrics': metrics,
+            'real_images': batch['image'],
+            'fake_images': fake_images,
+        }
 
     def validation_step(self, batch, batch_idx: int):
         return self.val_step('val', batch, batch_idx)
