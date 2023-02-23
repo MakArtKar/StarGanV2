@@ -1,6 +1,8 @@
 import torch
 from pytorch_lightning import LightningModule
 from munch import Munch
+from lpips_pytorch import lpips
+from torchvision.utils import make_grid
 
 from src.losses import BaseLoss
 
@@ -12,17 +14,22 @@ class StarGanV2LitModule(LightningModule):
             n_domains,
             models: Munch,
             optimizers: Munch,
-            criterion: BaseLoss,
+            gen_criterion: BaseLoss,
+            disc_criterion: BaseLoss,
     ):
         super().__init__()
-        self.save_hyperparameters(logger=False)
+        self.save_hyperparameters(logger=False, ignore=['models', 'optimizers', 'gen_criterion', 'disc_criterion'])
 
         self.models = models
         self.optimizers = optimizers
-        self.criterion = criterion
+        self.gen_criterion = gen_criterion
+        self.disc_criterion = disc_criterion
 
-    def sample_z(self, batch_size: int):
+    def sample_z(self, batch_size):
         return torch.randn(batch_size, self.hparams.latent_dim).to(self.device)
+
+    def sample_y(self, batch_size):
+        return torch.randint(low=0, high=self.hparams.n_domains, size=(batch_size,)).to(self.device)
 
     def adversarial_step(self, image, y, style_code, y_ref, **kwargs):
         real_disc_output = self.models.discriminator(image, y)
@@ -62,35 +69,62 @@ class StarGanV2LitModule(LightningModule):
     def init_step(self, batch):
         image, y = batch
         z = self.sample_z(image.size(0))
-        y_ref = 1 - y
+        y_ref = self.sample_y(image.size(0))
         style_code = self.models.mapping_network(z, y_ref)
         result = {'image': image, 'y': y, 'z': z, 'y_ref': y_ref, 'style_code': style_code}
         return result
 
-    def step(self, batch):
-        result = self.init_step(batch)
-        result.update(
-            self.adversarial_step(**result)
-        )
-        result.update(
-            self.style_reconstruction_step(**result)
-        )
-        result.update(
-            self.style_diversification_step(**result)
-        )
-        result.update(
-            self.cycle_step(**result)
-        )
-        loss = self.criterion(**result)
-        return loss, result
+    def generator_loss(self, batch):
+        batch.update(self.adversarial_step(**batch))
+        batch.update(self.style_reconstruction_step(**batch))
+        batch.update(self.style_diversification_step(**batch))
+        batch.update(self.cycle_step(**batch))
+        losses = self.gen_criterion(**batch)
+        return losses
+
+    def discriminator_loss(self, batch):
+        batch.update(self.adversarial_step(**batch))
+        loss = self.disc_criterion(**batch)
+        return loss
 
     def training_step(self, batch, batch_idx: int, optimizer_idx: int):
-        loss, result = self.step(batch)
-        return {'loss': loss, 'result': result}
+        batch = self.init_step(batch)
+        if optimizer_idx == 0:
+            losses = self.generator_loss(batch)
+            for name, value in losses.items():
+                self.log(f'generator_train/{name}', value, on_step=True, on_epoch=True, prog_bar=True)
+            if batch_idx == 0:
+                self.log_images(batch)
+            return losses
+        elif optimizer_idx == 1:
+            loss = self.discriminator_loss(batch)
+            self.log('discriminator_train/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+            return loss
+        elif optimizer_idx == 2:
+            losses = self.generator_loss(batch)
+            return losses
+        else:
+            losses = self.generator_loss(batch)
+            return losses
+
+    def val_step(self, mode: str, batch, batch_idx: int):
+        batch = self.init_step(batch)
+        fake_images = self.models.generator(batch['image'], batch['style_code'])
+        metrics = {
+            'lpips': lpips(fake_images.detach().cpu(), batch['image'].cpu()).squeeze().item()
+        }
+        self.log(f'{mode}/lpips', metrics['lpips'], on_step=True, on_epoch=True, prog_bar=True)
+        return metrics
+
+    def validation_step(self, batch, batch_idx: int):
+        return self.val_step('val', batch, batch_idx)
+
+    def test_step(self, batch, batch_idx: int):
+        return self.val_step('test', batch, batch_idx)
 
     def configure_optimizers(self):
         return [self.optimizers[key](self.models[key].parameters()) for key in self.optimizers]
 
 
 if __name__ == '__main__':
-    StarGanV2LitModule(1, 1, Munch(), Munch(), BaseLoss())
+    StarGanV2LitModule(1, 1, Munch(), Munch(), BaseLoss(), BaseLoss())

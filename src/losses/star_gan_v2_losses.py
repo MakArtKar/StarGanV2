@@ -9,7 +9,8 @@ class AdversarialLoss(BaseLoss):
         super().__init__()
 
     def forward(self, real_disc_output: torch.Tensor, fake_disc_output: torch.Tensor, **kwargs):
-        return torch.log(real_disc_output).mean() + torch.log(1 - fake_disc_output).mean()
+        return F.binary_cross_entropy_with_logits(real_disc_output, torch.ones_like(real_disc_output)) + \
+            F.binary_cross_entropy_with_logits(fake_disc_output, torch.zeros_like(fake_disc_output))
 
 
 class StyleReconstructionLoss(BaseLoss):

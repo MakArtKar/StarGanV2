@@ -21,6 +21,10 @@ class ConcatLoss(BaseLoss):
 
     def forward(self, **kwargs):
         result = 0.
+        losses = {}
         for loss, weight in zip(self.losses, self.weights):
-            result += weight * loss(**kwargs)
-        return result
+            name = loss.__class__.__name__
+            losses[name] = loss(**kwargs)
+            result += weight * losses[name]
+        losses['loss'] = result
+        return losses

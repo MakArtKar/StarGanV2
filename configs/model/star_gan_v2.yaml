@@ -19,23 +19,27 @@ optimizers:
     _partial_: True
     betas: [0, 0.99]
     lr: 1e-4
+    weight_decay: 1e-4
   discriminator:
     _target_: torch.optim.Adam
     _partial_: True
     betas: [ 0, 0.99 ]
     lr: 1e-4
+    weight_decay: 1e-4
   mapping_network:
     _target_: torch.optim.Adam
     _partial_: True
     betas: [ 0, 0.99 ]
     lr: 1e-6
+    weight_decay: 1e-4
   style_encoder:
     _target_: torch.optim.Adam
     _partial_: True
     betas: [ 0, 0.99 ]
     lr: 1e-4
+    weight_decay: 1e-4
 
-criterion:
+gen_criterion:
   _target_: src.losses.common_losses.ConcatLoss
   losses:
     - ${....losses.AdversarialLoss}
@@ -45,5 +49,7 @@ criterion:
   weights:
     - 1
     - 1
+    - -1
     - 1
-    - 1
+
+disc_criterion: ${..losses.AdversarialLoss}
