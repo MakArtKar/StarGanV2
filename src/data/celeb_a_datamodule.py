@@ -5,7 +5,7 @@ from albumentations import ImageOnlyTransform
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Subset
 
-from src.data.components.celeba_wraper import WrappedCelebADataset
+from src.data.components.celeba_wrappers import WrappedCelebADatasetWithRefs
 
 
 class CelebADataModule(LightningDataModule):
@@ -35,8 +35,10 @@ class CelebADataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         if not self.data_train and not self.data_val and not self.data_test:
-            self.data_train = WrappedCelebADataset(self.hparams.data_dir, transform=self.train_transform)
-            self.data_val = WrappedCelebADataset(self.hparams.data_dir, transform=self.val_transform)
+            self.data_train = \
+                WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=2, transform=self.train_transform)
+            self.data_val = \
+                WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=2, transform=self.val_transform)
             truncated_size = min(self.hparams.test_iters * self.hparams.batch_size, len(self.data_val))
             self.data_val = self.data_test = Subset(self.data_val, range(truncated_size))
 

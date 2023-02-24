@@ -17,12 +17,14 @@ class StarGanV2LitModule(LightningModule):
             disc_criterion: BaseLoss,
     ):
         super().__init__()
-        self.save_hyperparameters(logger=False, ignore=['models', 'optimizers', 'gen_criterion', 'disc_criterion'])
+        self.save_hyperparameters(logger=False, ignore=['models', 'optims', 'gen_criterion', 'disc_criterion'])
 
         self.models = models
-        self.optimizers = optimizers
+        self.optims = optimizers
         self.gen_criterion = gen_criterion
         self.disc_criterion = disc_criterion
+
+        self.automatic_optimization = False
 
     def sample_z(self, batch_size):
         return torch.randn(batch_size, self.hparams.latent_dim).to(self.device)
@@ -46,15 +48,10 @@ class StarGanV2LitModule(LightningModule):
             'encoded_style_code': encoded_style_code
         }
 
-    def style_diversification_step(self, image, y_ref, **kwargs):
-        first_z = self.sample_z(image.size(0))
-        second_z = self.sample_z(image.size(0))
-        first_s = self.models.mapping_network(first_z, y_ref)
-        second_s = self.models.mapping_network(second_z, y_ref)
-        first_gen_output = self.models.generator(image, first_s)
-        second_gen_output = self.models.generator(image, second_s)
+    def style_diversification_step(self, image, gen_output, second_style_code, **kwargs):
+        second_gen_output = self.models.generator(image, second_style_code)
         return {
-            'first_gen_output': first_gen_output,
+            'first_gen_output': gen_output,
             'second_gen_output': second_gen_output,
         }
 
@@ -65,46 +62,76 @@ class StarGanV2LitModule(LightningModule):
             'cycled_gen_output': cycled_gen_output,
         }
 
-    def init_step(self, batch):
-        image, y = batch
-        image.requires_grad_()
-        z = self.sample_z(image.size(0))
-        y_ref = self.sample_y(image.size(0))
-        style_code = self.models.mapping_network(z, y_ref)
-        result = {'image': image, 'y': y, 'z': z, 'y_ref': y_ref, 'style_code': style_code}
-        return result
+    def init_step(self, batch, use_latents=True):
+        batch['image'].requires_grad_()
+        y_ref = self.sample_y(batch['image'].size(0))
+        if use_latents:
+            z = self.sample_z(batch['image'].size(0))
+            second_z = self.sample_z(batch['image'].size(0))
+            batch.update({'z': z, 'second_z': second_z})
+            style_code = self.models.mapping_network(z, y_ref)
+            second_style_code = self.models.mapping_network(second_z, y_ref)
+        else:
+            style_code = self.models.style_encoder(batch['image_ref1'], y_ref)
+            second_style_code = self.models.style_encoder(batch['image_ref2'], y_ref)
+        batch.update({'y_ref': y_ref, 'style_code': style_code, 'second_style_code': second_style_code})
+        return batch
 
-    def generator_loss(self, batch):
+    def generator_loss(self, batch, use_latents=True):
+        batch = self.init_step(batch, use_latents=use_latents)
         batch.update(self.adversarial_step(**batch))
         batch.update(self.style_reconstruction_step(**batch))
         batch.update(self.style_diversification_step(**batch))
         batch.update(self.cycle_step(**batch))
         losses = self.gen_criterion(**batch)
+        suffix = '_latents' if use_latents else '_refs'
+        losses = {key + suffix: value for key, value in losses.items()}
         return losses
 
-    def discriminator_loss(self, batch):
+    def discriminator_loss(self, batch, use_latents=True):
+        batch = self.init_step(batch, use_latents=use_latents)
         batch.update(self.adversarial_step(**batch))
-        loss = self.disc_criterion(**batch)
-        return loss
+        losses = self.disc_criterion(**batch)
+        suffix = '_latents' if use_latents else '_refs'
+        losses = {key + suffix: value for key, value in losses.items()}
+        return losses
 
-    def training_step(self, batch, batch_idx: int, optimizer_idx: int):
-        batch = self.init_step(batch)
-        if optimizer_idx == 0:
-            losses = self.generator_loss(batch)
-            for name, value in losses.items():
-                self.log(f'generator_train/{name}', value, prog_bar=True)
-            return losses
-        elif optimizer_idx == 1:
-            losses = self.discriminator_loss(batch)
-            for name, value in losses.items():
-                self.log(f'discriminator_train/{name}', value, prog_bar=True)
-            return losses
-        elif optimizer_idx == 2:
-            losses = self.generator_loss(batch)
-            return losses
-        else:
-            losses = self.generator_loss(batch)
-            return losses
+    def training_step(self, batch, batch_idx: int):
+        g_opt, d_opt, m_opt, s_opt = self.optimizers()
+
+        # Discriminator
+        latent_losses = self.discriminator_loss(batch, use_latents=True)
+        self.log_dict({f'disc_train/{key}': value for key, value in latent_losses.items()}, prog_bar=True)
+
+        d_opt.zero_grad()
+        self.manual_backward(latent_losses['loss_latents'])
+        d_opt.step()
+
+        ref_losses = self.discriminator_loss(batch, use_latents=False)
+        self.log_dict({f'disc_train/{key}': value for key, value in ref_losses.items()}, prog_bar=True)
+
+        d_opt.zero_grad()
+        self.manual_backward(ref_losses['loss_refs'])
+        d_opt.step()
+
+        # Generator
+        latent_losses = self.generator_loss(batch, use_latents=True)
+        self.log_dict({f'gen_train/{key}': value for key, value in latent_losses.items()}, prog_bar=True)
+
+        g_opt.zero_grad()
+        m_opt.zero_grad()
+        s_opt.zero_grad()
+        self.manual_backward(latent_losses['loss_latents'])
+        g_opt.step()
+        m_opt.step()
+        s_opt.step()
+
+        ref_losses = self.generator_loss(batch, use_latents=False)
+        self.log_dict({f'gen_train/{key}': value for key, value in ref_losses.items()}, prog_bar=True)
+
+        g_opt.zero_grad()
+        self.manual_backward(ref_losses['loss_refs'])
+        g_opt.step()
 
     def val_step(self, mode: str, batch, batch_idx: int):
         batch = self.init_step(batch)
@@ -126,7 +153,7 @@ class StarGanV2LitModule(LightningModule):
         return self.val_step('test', batch, batch_idx)
 
     def configure_optimizers(self):
-        return [self.optimizers[key](self.models[key].parameters()) for key in self.optimizers]
+        return [self.optims[key](self.models[key].parameters()) for key in self.optims]
 
 
 if __name__ == '__main__':
