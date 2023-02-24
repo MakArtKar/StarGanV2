@@ -33,6 +33,7 @@ class StarGanV2LitModule(LightningModule):
 
         self.automatic_optimization = False
         self._init_diversity_loss_decay()
+        self.logged_model = False
 
     def sample_z(self, batch_size):
         return torch.randn(batch_size, self.hparams.latent_dim).to(self.device)
@@ -115,6 +116,11 @@ class StarGanV2LitModule(LightningModule):
         return losses
 
     def training_step(self, batch, batch_idx: int):
+        if not self.logged_model:
+            for model in self.models.values():
+                self.trainer.logger.watch(model, log_freq=1)
+            self.logged_model = True
+
         batch.update(self.init_step(**batch))
         g_opt, d_opt, m_opt, s_opt = self.optimizers()
 
