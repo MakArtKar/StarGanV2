@@ -94,7 +94,7 @@ class StarGanV2LitModule(LightningModule):
         batch['image'].requires_grad_()
         batch.update(self.real_adversarial_step(**batch))
         with torch.no_grad():
-            batch.update(self.get_style_code(**batch))
+            batch.update(self.get_style_code(**batch, use_latents=use_latents))
             batch.update(self.fake_image_step(**batch))
         batch.update(self.fake_adversarial_step(**batch))
         losses = self.disc_criterion(**batch)
@@ -103,7 +103,7 @@ class StarGanV2LitModule(LightningModule):
         return losses
 
     def generator_loss(self, batch, use_latents=True):
-        batch.update(self.get_style_code(**batch))
+        batch.update(self.get_style_code(**batch, use_latents=use_latents))
         batch.update(self.fake_image_step(**batch))
         batch.update(self.fake_adversarial_step(**batch))
 
@@ -162,6 +162,8 @@ class StarGanV2LitModule(LightningModule):
             if key != 'discriminator':
                 moving_average(self.models[key], self.models_ema[key])
         self._diversity_loss_weight_decay(batch['image'].size(0))
+
+        return batch
 
     def _init_diversity_loss_decay(self):
         self.ds_loss_idx = \

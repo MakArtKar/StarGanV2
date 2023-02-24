@@ -5,6 +5,7 @@ from albumentations import ImageOnlyTransform
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Subset
 
+from src.data.components.celeba_hq import CelebAHQWithRefs
 from src.data.components.celeba_wrappers import WrappedCelebADatasetWithRefs
 
 
@@ -20,6 +21,7 @@ class CelebADataModule(LightningDataModule):
             train_transform: Optional[ImageOnlyTransform] = None,
             val_transform: Optional[ImageOnlyTransform] = None,
             test_iters: int = 100,
+            crop: bool = False,
     ):
         super().__init__()
 
@@ -35,12 +37,20 @@ class CelebADataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
         if not self.data_train and not self.data_val and not self.data_test:
-            self.data_train = \
-                WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=2, transform=self.train_transform)
-            self.data_val = \
-                WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=0, transform=self.val_transform)
-            truncated_size = min(self.hparams.test_iters * self.hparams.batch_size, len(self.data_val))
-            self.data_val = self.data_test = Subset(self.data_val, range(truncated_size))
+            if self.hparams.crop:
+                self.data_train = \
+                    WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=2, transform=self.train_transform)
+                self.data_val = \
+                    WrappedCelebADatasetWithRefs(self.hparams.data_dir, num_refs=0, transform=self.val_transform)
+                truncated_size = min(self.hparams.test_iters * self.hparams.batch_size, len(self.data_val))
+                self.data_val = self.data_test = Subset(self.data_val, range(truncated_size))
+            else:
+                self.data_train = \
+                    CelebAHQWithRefs(num_refs=2, transform=self.train_transform)
+                self.data_val = \
+                    CelebAHQWithRefs(num_refs=0, transform=self.val_transform, train=False)
+                truncated_size = min(self.hparams.test_iters * self.hparams.batch_size, len(self.data_val))
+                self.data_val = self.data_test = Subset(self.data_val, range(truncated_size))
 
     def train_dataloader(self):
         return DataLoader(

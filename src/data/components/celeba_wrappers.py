@@ -17,7 +17,7 @@ class WrappedCelebADataset(CelebADataset):
         # Apply transformations to the image
         if self.transform:
             img = self.transform(image=img)['image']
-            img = img / 255
+        img = img / 255
         idx = self.header.index('Male')
         return {
             'image': img * 2 - 1,  # image \in [-1, 1]
