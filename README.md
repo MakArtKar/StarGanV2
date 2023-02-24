@@ -11,11 +11,14 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 * ~~`loss_ds` weight linear decay~~
 * ~~He initialization~~
 * ~~Exponential moving averages~~
-* Latent code injection
-* Replace (D) with style code
-* Diversity regularization
-* Add augmentations
-* Check gan train tricks
+* Add tanh to generator output
+* Normalize images between -1 and 1
+* log D instead log 1 - D in adv loss
+* Flip labels
+* Change ReLU to LeakyReLU
+* Change Upsample to PixelShuffle or ConvTranspose2d
+* SGD for disc
+* Label Smoothing
 
 ---
 

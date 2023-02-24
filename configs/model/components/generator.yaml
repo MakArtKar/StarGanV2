@@ -1,5 +1,5 @@
 _target_: src.models.Generator
 style_dim: ${.....style_dim}
 hid_channels: 64
-depth: 4
-bottleneck_num: 4
+depth: 2
+bottleneck_num: 2
