@@ -15,6 +15,7 @@ class Generator(nn.Module):
         self.bottleneck = self.build_bottleneck(bottleneck_num, style_dim)
         self.decoder_blocks = self.build_decoder(depth, style_dim)
         self.conv2 = nn.Conv2d(self.channels, 3, 1)
+        self.activ = nn.Tanh()
 
     def build_encoder(self, depth):
         encoder_blocks = []
@@ -54,4 +55,4 @@ class Generator(nn.Module):
             x = x + encoder_outputs[-i - 1]
             x = decoder_block(x, style)
         x = self.conv2(x)
-        return x
+        return self.activ(x)

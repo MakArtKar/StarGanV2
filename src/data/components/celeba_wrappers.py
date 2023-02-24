@@ -19,7 +19,7 @@ class WrappedCelebADataset(CelebADataset):
             img = self.transform(image=img)['image']
         idx = self.header.index('Male')
         return {
-            'image': img,
+            'image': img * 2 - 1,  # image \in [-1, 1]
             'y': int(img_attributes[idx] == 1),
         }
 

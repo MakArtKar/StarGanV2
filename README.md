@@ -11,8 +11,8 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 * ~~`loss_ds` weight linear decay~~
 * ~~He initialization~~
 * ~~Exponential moving averages~~
-* Add tanh to generator output
-* Normalize images between -1 and 1
+* ~~Add tanh to generator output~~
+* ~~Normalize images between -1 and 1~~
 * log D instead log 1 - D in adv loss
 * Flip labels
 * Change ReLU to LeakyReLU

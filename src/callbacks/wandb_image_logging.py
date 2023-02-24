@@ -13,8 +13,8 @@ class WandbImageLogging(Callback):
         if batch_idx == 0:
             fake_images = outputs['fake_images']
             fake_images = make_grid(fake_images)
-            trainer.logger.log_image(key='generated_images', images=[fake_images])
+            trainer.logger.log_image(key='generated_images', images=[(fake_images + 1) / 2])
 
             real_images = outputs['real_images']
             real_images = make_grid(real_images)
-            trainer.logger.log_image(key='original_images', images=[real_images])
+            trainer.logger.log_image(key='original_images', images=[(real_images + 1) / 2])
