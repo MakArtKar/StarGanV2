@@ -13,6 +13,14 @@ class AdversarialLoss(BaseLoss):
             F.binary_cross_entropy_with_logits(fake_disc_output, torch.zeros_like(fake_disc_output))
 
 
+class GeneratorAdversarialLoss(BaseLoss):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, fake_disc_output: torch.Tensor, **kwargs):
+        return F.binary_cross_entropy_with_logits(fake_disc_output, torch.ones_like(fake_disc_output))
+
+
 class StyleReconstructionLoss(BaseLoss):
     def __init__(self):
         super().__init__()

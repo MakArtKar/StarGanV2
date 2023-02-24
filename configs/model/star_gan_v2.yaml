@@ -42,7 +42,7 @@ optimizers:
 gen_criterion:
   _target_: src.losses.common_losses.ConcatLoss
   losses:
-    - ${....losses.AdversarialLoss}
+    - ${....losses.GeneratorAdversarialLoss}
     - ${....losses.StyleReconstructionLoss}
     - ${....losses.StyleDiversificationLoss}
     - ${....losses.CycleLoss}
@@ -50,7 +50,7 @@ gen_criterion:
     - 1
     - 1
     - -1
-    - 5
+    - 1
 
 disc_criterion:
   _target_: src.losses.common_losses.ConcatLoss

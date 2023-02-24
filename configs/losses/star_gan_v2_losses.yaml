@@ -1,6 +1,9 @@
 AdversarialLoss:
   _target_: src.losses.AdversarialLoss
 
+GeneratorAdversarialLoss:
+  _target_: src.losses.GeneratorAdversarialLoss
+
 
 StyleReconstructionLoss:
   _target_: src.losses.StyleReconstructionLoss

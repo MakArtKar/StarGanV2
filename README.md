@@ -13,7 +13,7 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 * ~~Exponential moving averages~~
 * ~~Add tanh to generator output~~
 * ~~Normalize images between -1 and 1~~
-* log D instead log 1 - D in adv loss
+* ~~log D instead log 1 - D in adv loss~~
 * Flip labels
 * Change ReLU to LeakyReLU
 * Change Upsample to PixelShuffle or ConvTranspose2d

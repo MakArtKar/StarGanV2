@@ -13,10 +13,11 @@ class WrappedCelebADataset(CelebADataset):
         img_attributes = self.annotations[idx] # convert all attributes to zeros and ones
         # Load image and convert it to RGB
         img = Image.open(img_path).convert('RGB')
-        img = np.array(img)
+        img = np.array(img, dtype=np.uint8)
         # Apply transformations to the image
         if self.transform:
             img = self.transform(image=img)['image']
+            img = img / 255
         idx = self.header.index('Male')
         return {
             'image': img * 2 - 1,  # image \in [-1, 1]
