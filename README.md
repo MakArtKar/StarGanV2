@@ -20,6 +20,12 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 * SGD for disc
 * Label Smoothing
 
+# Structure
+
+* [src/models/components](src%2Fmodels%2Fcomponents) - собраны все модели
+* [src/data/components](src%2Fdata%2Fcomponents) - датасет
+* [src/models/star_gan_v2_module](src%2Fmodels%2Fstar_gan_v2_module.py) - trainer для обучения, валидации и теста
+
 ---
 
 <div align="center">
