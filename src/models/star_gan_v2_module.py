@@ -1,3 +1,5 @@
+from math import ceil
+
 import torch
 from pytorch_lightning import LightningModule
 from munch import Munch
@@ -25,6 +27,7 @@ class StarGanV2LitModule(LightningModule):
         self.disc_criterion = disc_criterion
 
         self.automatic_optimization = False
+        self._init_diversity_loss_decay()
 
     def sample_z(self, batch_size):
         return torch.randn(batch_size, self.hparams.latent_dim).to(self.device)
@@ -132,6 +135,18 @@ class StarGanV2LitModule(LightningModule):
         g_opt.zero_grad()
         self.manual_backward(ref_losses['loss_refs'])
         g_opt.step()
+
+        self._diversity_loss_weight_decay(batch['image'].size(0))
+
+    def _init_diversity_loss_decay(self):
+        self.ds_loss_idx = \
+            [loss.__class__.__name__ for loss in self.gen_criterion.losses].index('StyleDiversificationLoss')
+        self.init_ds_weight = self.gen_criterion.weights[self.ds_loss_idx]
+
+    def _diversity_loss_weight_decay(self, batch_size):
+        num_steps = self.trainer.max_epochs * ceil(len(self.trainer.train_dataloader.dataset) // batch_size)
+        self.gen_criterion.weights[self.ds_loss_idx] -= self.init_ds_weight / num_steps
+        self.log('style_diversity_weight', self.gen_criterion.weights[self.ds_loss_idx], on_step=True)
 
     def val_step(self, mode: str, batch, batch_idx: int):
         batch = self.init_step(batch)
