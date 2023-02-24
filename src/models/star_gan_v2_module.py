@@ -1,3 +1,4 @@
+import copy
 from math import ceil
 
 import torch
@@ -6,7 +7,7 @@ from munch import Munch
 from lpips_pytorch import lpips
 
 from src.losses import BaseLoss
-from src.models.utils import he_init
+from src.models.utils import he_init, moving_average
 
 
 class StarGanV2LitModule(LightningModule):
@@ -25,6 +26,7 @@ class StarGanV2LitModule(LightningModule):
         self.models = models
         for model in self.models.values():
             model.apply(he_init)
+        self.models_ema = copy.deepcopy(self.models)
         self.optims = optimizers
         self.gen_criterion = gen_criterion
         self.disc_criterion = disc_criterion
@@ -68,18 +70,21 @@ class StarGanV2LitModule(LightningModule):
             'cycled_gen_output': cycled_gen_output,
         }
 
-    def init_step(self, batch, use_latents=True):
+    def init_step(self, batch, use_latents=True, ema=False):
+        mapping_network = self.models_ema.mapping_network if ema else self.models.mapping_network
+        style_encoder = self.models_ema.style_encoder if ema else self.models.style_encoder
+
         batch['image'].requires_grad_()
         y_ref = self.sample_y(batch['image'].size(0))
         if use_latents:
             z = self.sample_z(batch['image'].size(0))
             second_z = self.sample_z(batch['image'].size(0))
             batch.update({'z': z, 'second_z': second_z})
-            style_code = self.models.mapping_network(z, y_ref)
-            second_style_code = self.models.mapping_network(second_z, y_ref)
+            style_code = mapping_network(z, y_ref)
+            second_style_code = mapping_network(second_z, y_ref)
         else:
-            style_code = self.models.style_encoder(batch['image_ref1'], y_ref)
-            second_style_code = self.models.style_encoder(batch['image_ref2'], y_ref)
+            style_code = style_encoder(batch['image_ref1'], y_ref)
+            second_style_code = style_encoder(batch['image_ref2'], y_ref)
         batch.update({'y_ref': y_ref, 'style_code': style_code, 'second_style_code': second_style_code})
         return batch
 
@@ -139,6 +144,9 @@ class StarGanV2LitModule(LightningModule):
         self.manual_backward(ref_losses['loss_refs'])
         g_opt.step()
 
+        for key in self.models:
+            if key != 'discriminator':
+                moving_average(self.models[key], self.models_ema[key])
         self._diversity_loss_weight_decay(batch['image'].size(0))
 
     def _init_diversity_loss_decay(self):
@@ -153,7 +161,7 @@ class StarGanV2LitModule(LightningModule):
 
     def val_step(self, mode: str, batch, batch_idx: int):
         batch = self.init_step(batch)
-        fake_images = self.models.generator(batch['image'], batch['style_code'])
+        fake_images = self.models_ema.generator(batch['image'], batch['style_code'])
         metrics = {
             'lpips': lpips(fake_images.detach().cpu(), batch['image'].cpu()).squeeze().item()
         }

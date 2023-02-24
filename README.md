@@ -10,12 +10,12 @@ Repository is a homework for GAN HSE/YSDA course inherited from Lightning-Hydra-
 * ~~Add x_refs with z-s~~
 * ~~`loss_ds` weight linear decay~~
 * ~~He initialization~~
-* Exponential moving averages
-* Union `mapping_network` and `style_encoder` optimization steps
+* ~~Exponential moving averages~~
 * Latent code injection
 * Replace (D) with style code
 * Diversity regularization
 * Add augmentations
+* Check gan train tricks
 
 ---
 
