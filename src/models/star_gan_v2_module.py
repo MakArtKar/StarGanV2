@@ -40,15 +40,17 @@ class StarGanV2LitModule(LightningModule):
     def sample_y(self, batch_size):
         return torch.randint(low=0, high=self.hparams.n_domains, size=(batch_size,)).to(self.device)
 
-    def adversarial_step(self, image, y, style_code, y_ref, **kwargs):
-        real_disc_output = self.models.discriminator(image, y)
+    def fake_image_step(self, image, style_code, **kwargs):
         gen_output = self.models.generator(image, style_code)
+        return {'gen_output': gen_output}
+
+    def fake_adversarial_step(self, gen_output, y_ref, **kwargs):
         fake_disc_output = self.models.discriminator(gen_output, y_ref)
-        return {
-            'real_disc_output': real_disc_output,
-            'gen_output': gen_output,
-            'fake_disc_output': fake_disc_output,
-        }
+        return {'fake_disc_output': fake_disc_output}
+
+    def real_adversarial_step(self, image, y, **kwargs):
+        real_disc_output = self.models.discriminator(image, y)
+        return {'real_disc_output': real_disc_output}
 
     def style_reconstruction_step(self, gen_output, y_ref, **kwargs):
         encoded_style_code = self.models.style_encoder(gen_output, y_ref)
@@ -56,7 +58,11 @@ class StarGanV2LitModule(LightningModule):
             'encoded_style_code': encoded_style_code
         }
 
-    def style_diversification_step(self, image, gen_output, second_style_code, **kwargs):
+    def style_diversification_step(self, image, gen_output, second_z, y_ref, image_ref2, use_latents=True, **kwargs):
+        if use_latents:
+            second_style_code = self.models.mapping_network(second_z, y_ref)
+        else:
+            second_style_code = self.models.style_encoder(image_ref2, y_ref)
         second_gen_output = self.models.generator(image, second_style_code)
         return {
             'first_gen_output': gen_output,
@@ -70,44 +76,46 @@ class StarGanV2LitModule(LightningModule):
             'cycled_gen_output': cycled_gen_output,
         }
 
-    def init_step(self, batch, use_latents=True, ema=False):
-        mapping_network = self.models_ema.mapping_network if ema else self.models.mapping_network
-        style_encoder = self.models_ema.style_encoder if ema else self.models.style_encoder
-
-        batch['image'].requires_grad_()
-        y_ref = self.sample_y(batch['image'].size(0))
+    def get_style_code(self, y_ref, z, image_ref1=None, use_latents=True, **kwargs):
         if use_latents:
-            z = self.sample_z(batch['image'].size(0))
-            second_z = self.sample_z(batch['image'].size(0))
-            batch.update({'z': z, 'second_z': second_z})
-            style_code = mapping_network(z, y_ref)
-            second_style_code = mapping_network(second_z, y_ref)
+            style_code = self.models.mapping_network(z, y_ref)
         else:
-            style_code = style_encoder(batch['image_ref1'], y_ref)
-            second_style_code = style_encoder(batch['image_ref2'], y_ref)
-        batch.update({'y_ref': y_ref, 'style_code': style_code, 'second_style_code': second_style_code})
-        return batch
+            style_code = self.models.style_encoder(image_ref1, y_ref)
+        return {'style_code': style_code}
+
+    def init_step(self, image, **kwargs):
+        y_ref = self.sample_y(image.size(0))
+        z = self.sample_z(image.size(0))
+        second_z = self.sample_z(image.size(0))
+        return {'y_ref': y_ref, 'z': z, 'second_z': second_z}
+
+    def discriminator_loss(self, batch, use_latents=True):
+        batch['image'].requires_grad_()
+        batch.update(self.real_adversarial_step(**batch))
+        with torch.no_grad():
+            batch.update(self.get_style_code(**batch))
+            batch.update(self.fake_image_step(**batch))
+        batch.update(self.fake_adversarial_step(**batch))
+        losses = self.disc_criterion(**batch)
+        suffix = '_latents' if use_latents else '_refs'
+        losses = {key + suffix: value for key, value in losses.items()}
+        return losses
 
     def generator_loss(self, batch, use_latents=True):
-        batch = self.init_step(batch, use_latents=use_latents)
-        batch.update(self.adversarial_step(**batch))
+        batch.update(self.get_style_code(**batch))
+        batch.update(self.fake_image_step(**batch))
+        batch.update(self.fake_adversarial_step(**batch))
+
         batch.update(self.style_reconstruction_step(**batch))
-        batch.update(self.style_diversification_step(**batch))
+        batch.update(self.style_diversification_step(**batch, use_latents=use_latents))
         batch.update(self.cycle_step(**batch))
         losses = self.gen_criterion(**batch)
         suffix = '_latents' if use_latents else '_refs'
         losses = {key + suffix: value for key, value in losses.items()}
         return losses
 
-    def discriminator_loss(self, batch, use_latents=True):
-        batch = self.init_step(batch, use_latents=use_latents)
-        batch.update(self.adversarial_step(**batch))
-        losses = self.disc_criterion(**batch)
-        suffix = '_latents' if use_latents else '_refs'
-        losses = {key + suffix: value for key, value in losses.items()}
-        return losses
-
     def training_step(self, batch, batch_idx: int):
+        batch.update(self.init_step(**batch))
         g_opt, d_opt, m_opt, s_opt = self.optimizers()
 
         # Discriminator
@@ -160,7 +168,8 @@ class StarGanV2LitModule(LightningModule):
         self.log('style_diversity_weight', self.gen_criterion.weights[self.ds_loss_idx], on_step=True)
 
     def val_step(self, mode: str, batch, batch_idx: int):
-        batch = self.init_step(batch)
+        batch.update(self.init_step(**batch))
+        batch.update(self.get_style_code(**batch))
         fake_images = self.models_ema.generator(batch['image'], batch['style_code'])
         metrics = {
             'lpips': lpips(fake_images.detach().cpu(), batch['image'].cpu()).squeeze().item()

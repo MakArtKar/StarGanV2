@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 from src.models.components.res_blocks import DownsampleResNetBlock, UpsampleResNetBlock
