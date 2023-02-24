@@ -6,6 +6,7 @@ from munch import Munch
 from lpips_pytorch import lpips
 
 from src.losses import BaseLoss
+from src.models.utils import he_init
 
 
 class StarGanV2LitModule(LightningModule):
@@ -22,6 +23,8 @@ class StarGanV2LitModule(LightningModule):
         self.save_hyperparameters(logger=False, ignore=['models', 'optims', 'gen_criterion', 'disc_criterion'])
 
         self.models = models
+        for model in self.models.values():
+            model.apply(he_init)
         self.optims = optimizers
         self.gen_criterion = gen_criterion
         self.disc_criterion = disc_criterion
